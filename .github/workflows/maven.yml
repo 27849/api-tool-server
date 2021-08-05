@@ -1,0 +1,38 @@
+# This workflow will build a Java project with Maven
+# For more information see: https://help.github.com/actions/language-and-framework-guides/building-and-testing-java-with-maven
+
+name: Java CI with Maven
+
+on:
+  push:
+    branches: [ master ]
+  pull_request:
+    branches: [ master ]
+
+jobs:
+  build:
+
+    runs-on: self-hosted
+
+    steps:
+      - uses: actions/checkout@v2
+      - name: Build with Maven
+        run: mvn -B package --file pom.xml
+      - name: scp jar to remote server
+        uses: garygrossgarten/github-action-scp@release
+        with:
+          local: 'target/api-tool-server-0.0.1-SNAPSHOT.jar'
+          remote: '/data/api-tool-server/api-tool-server.jar'
+          host: ${{ secrets.HOST }}
+          username: ${{ secrets.USERNAME }}
+          password: ${{ secrets.PASSWD }}
+      - name: 在服务器上执行 java -jar，请确保服务器安装了 JDK
+        if: always()
+        uses: fifsky/ssh-action@master
+        with:
+          command: |
+            cd /data/api-tool-server && ./api-tool-server.sh
+          host: ${{ secrets.HOST }}
+          user: ${{ secrets.USERNAME }}
+          pass: ${{ secrets.PASSWD }}
+          args: "-tt"
